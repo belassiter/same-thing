@@ -60,9 +60,45 @@
         .btn-danger { background-color: #dc2626; color: white; }
         .btn-danger:hover { background-color: #b91c1c; }
         .btn-danger:focus { ring-color: #dc2626; }
+        
+        /* Container for all emoji popups */
+        #emoji-popup-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* Individual emoji instance */
+        .emoji-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            font-size: 8rem;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .emoji-popup.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .emoji-btn {
+            background: #f3f4f6; border: 1px solid #d1d5db;
+            border-radius: 9999px; width: 48px; height: 48px;
+            font-size: 1.5rem; line-height: 1;
+            display: inline-flex; justify-content: center; align-items: center;
+            transition: all 0.2s;
+        }
+        .emoji-btn:hover { background: #e5e7eb; transform: scale(1.1); }
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div id="emoji-popup-container"></div>
 
     <div class="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg p-8 space-y-6">
         
@@ -97,7 +133,7 @@
         <!-- =========== REMOTE GAME MODE =========== -->
         <div id="remote-mode-content" class="hidden">
             <div id="room-selection-area" class="space-y-4 text-center">
-                <p class="text-gray-600">Create a private room, then tell your friend the code to join your room.</p>
+                <p class="text-gray-600">Play with a friend over the internet.</p>
                 <button id="create-room-btn" class="btn btn-primary">Create Private Room</button>
                 <div class="relative flex py-2 items-center"><div class="flex-grow border-t border-gray-300"></div><span class="flex-shrink mx-4 text-gray-400">OR</span><div class="flex-grow border-t border-gray-300"></div></div>
                 <div class="space-y-2">
@@ -140,6 +176,15 @@
             <div id="status-container" class="p-4 rounded-lg"><p id="status" class="text-2xl font-bold"></p></div>
             <button id="next-round-button" class="btn btn-secondary hidden">Next Round</button>
             <button id="play-again-button" class="btn btn-success hidden">Play Again</button>
+            <div id="emoji-bar" class="hidden pt-4 mt-4 border-t">
+                <div class="flex justify-center space-x-2">
+                    <button class="emoji-btn">&#128514;</button>
+                    <button class="emoji-btn">&#128077;</button>
+                    <button class="emoji-btn">&#129300;</button>
+                    <button class="emoji-btn">&#127881;</button>
+                    <button class="emoji-btn">&#129327;</button>
+                </div>
+            </div>
         </div>
         
         <!-- =========== UNIVERSAL HISTORY AREA =========== -->
@@ -178,7 +223,8 @@
         let activeMode = 'local';
         let unsubscribeFromRoom;
         let currentRoomId;
-        let lastSeenRound = 0; // Variable to track the round for the remote client
+        let lastSeenRound = 0;
+        let lastSeenEmojis = { p1: '', p2: '' };
         const wordList = [
             'bottle', 'stapler', 'window', 'picture', 'blanket', 'computer',
             'keyboard', 'monitor', 'speaker', 'headset', 'charger', 'notebook',
@@ -231,12 +277,14 @@
                 status: document.getElementById('status'),
                 nextRoundBtn: document.getElementById('next-round-button'),
                 playAgainBtn: document.getElementById('play-again-button'),
+                emojiBar: document.getElementById('emoji-bar'),
             },
             history: {
                 section: document.getElementById('history-section'),
                 localContainer: document.getElementById('local-history-container'),
                 remoteContainer: document.getElementById('remote-history-container'),
-            }
+            },
+            emojiPopupContainer: document.getElementById('emoji-popup-container'),
         };
 
         // --- GAME STATE (LOCAL) ---
@@ -321,7 +369,19 @@
             }
             let tableHTML = '<table class="w-full text-sm text-left text-gray-500"> <thead class="text-xs text-gray-700 uppercase bg-gray-50"> <tr> <th scope="col" class="px-6 py-3">Round</th> <th scope="col" class="px-6 py-3">Player 1</th> <th scope="col" class="px-6 py-3">Player 2</th> </tr> </thead> <tbody>';
             historyData.forEach(round => {
-                tableHTML += `<tr class="bg-white border-b"> <td class="px-6 py-4 font-medium text-gray-900">${round.round}</td> <td class="px-6 py-4">${round.p1}</td> <td class="px-6 py-4">${round.p2}</td> </tr>`;
+                const p1 = { display: round.p1, title: '' };
+                const p2 = { display: round.p2, title: '' };
+
+                if (p1.display.length >= 15) {
+                    p1.title = p1.display;
+                    p1.display = p1.display.substring(0, 12) + '…';
+                }
+                if (p2.display.length >= 15) {
+                    p2.title = p2.display;
+                    p2.display = p2.display.substring(0, 12) + '…';
+                }
+
+                tableHTML += `<tr class="bg-white border-b"> <td class="px-6 py-4 font-medium text-gray-900">${round.round}</td> <td class="px-6 py-4" title="${p1.title}">${p1.display}</td> <td class="px-6 py-4" title="${p2.title}">${p2.display}</td> </tr>`;
             });
             tableHTML += '</tbody></table>';
             container.innerHTML = tableHTML;
@@ -332,8 +392,19 @@
             ui.local.content.classList.add('hidden');
             ui.remote.content.classList.add('hidden');
             ui.results.area.classList.remove('hidden');
-            ui.results.word1Display.textContent = word1;
-            ui.results.word2Display.textContent = word2;
+            ui.results.emojiBar.classList.remove('hidden');
+
+            // Handle word truncation and tooltips
+            [word1, word2].forEach((word, index) => {
+                const displayEl = index === 0 ? ui.results.word1Display : ui.results.word2Display;
+                displayEl.title = ''; // Clear previous tooltip
+                if (word.length >= 15) {
+                    displayEl.textContent = word.substring(0, 12) + '…';
+                    displayEl.title = word; // Set full word as tooltip
+                } else {
+                    displayEl.textContent = word;
+                }
+            });
 
             if (isMatch) {
                 ui.results.status.innerHTML = `Same! <br><span class="text-lg font-normal">It took you ${round} round${round > 1 ? 's' : ''}.</span>`;
@@ -372,7 +443,6 @@
                 const word2 = ui.local.word2Input.value.trim();
                 if (!word2) { alert("Player 2, please enter a word."); return; }
                 
-                // Check for reuse against previous rounds only.
                 if (isWordSimilarToUsed(word2, usedWords)) {
                     showInputError(ui.local.word2Input, ui.local.word2Error, "This word is too similar to one already used.");
                     return;
@@ -395,6 +465,7 @@
             setRandomPlaceholder(ui.local.word1Input);
             setRandomPlaceholder(ui.local.word2Input);
             ui.results.area.classList.add('hidden');
+            ui.results.emojiBar.classList.add('hidden');
             ui.local.content.classList.remove('hidden');
             ui.local.gameArea.classList.remove('hidden');
             ui.local.p2Turn.classList.add('hidden');
@@ -424,7 +495,8 @@
                     words: { p1: '', p2: '' },
                     history: [],
                     readyForNextRound: [],
-                    readyForNewGame: []
+                    readyForNewGame: [],
+                    emojis: { p1: '', p2: '' }
                 });
                 listenToRoom(roomId);
             } catch (error) {
@@ -482,6 +554,7 @@
             }
             currentRoomId = null;
             lastSeenRound = 0;
+            lastSeenEmojis = { p1: '', p2: '' };
             ui.remote.gameArea.classList.add('hidden');
             ui.remote.selectionArea.classList.remove('hidden');
             ui.remote.roomIdDisplay.classList.add('hidden');
@@ -489,12 +562,18 @@
             renderHistory([], ui.remote.historyContainer);
         }
         function updateRemoteUI(data) {
-            const { players, round, gameState, words, history, readyForNextRound, readyForNewGame } = data;
+            const { players, round, gameState, words, history, readyForNextRound, readyForNewGame, emojis } = data;
             renderHistory(history, ui.remote.historyContainer);
             const myPlayerKey = players[userId];
             if (!myPlayerKey) return;
-            const isPlayer1 = myPlayerKey === 'p1';
-            const numPlayers = Object.keys(players).length;
+            const theirPlayerKey = myPlayerKey === 'p1' ? 'p2' : 'p1';
+            
+            // Check for and display new emojis from opponent
+            if (emojis && emojis[theirPlayerKey] && emojis[theirPlayerKey] !== lastSeenEmojis[theirPlayerKey]) {
+                const justTheEmoji = emojis[theirPlayerKey].split('-')[0];
+                showEmojiPopup(justTheEmoji);
+                lastSeenEmojis[theirPlayerKey] = emojis[theirPlayerKey];
+            }
 
             const directMatch = words.p1.toLowerCase() === words.p2.toLowerCase();
             const stemMatch = stemmer(words.p1.toLowerCase()) === stemmer(words.p2.toLowerCase());
@@ -520,7 +599,7 @@
             ui.remote.gameArea.classList.remove('hidden');
             ui.results.area.classList.add('hidden');
 
-            if (numPlayers < 2) {
+            if (Object.keys(players).length < 2) {
                 ui.remote.instruction.textContent = 'Waiting for partner...';
                 ui.remote.roundDisplay.classList.add('hidden');
                 ui.remote.inputContainer.classList.add('hidden');
@@ -542,16 +621,14 @@
                 ui.remote.input.disabled = true;
                 ui.remote.input.value = myWord;
             } else {
-                ui.remote.instruction.textContent = `Your turn, Player ${isPlayer1 ? 1 : 2}.`;
+                ui.remote.instruction.textContent = `Your turn, Player ${myPlayerKey === 'p1' ? 1 : 2}.`;
                 ui.remote.mainButton.disabled = false;
                 ui.remote.input.disabled = false;
                 setRandomPlaceholder(ui.remote.input);
-                // Only clear the input if the round has advanced
                 if (lastSeenRound !== round) {
                     ui.remote.input.value = '';
                 }
             }
-            // Update the last seen round
             lastSeenRound = round;
         }
         async function submitRemoteWord() {
@@ -569,8 +646,7 @@
                 }
 
                 const myPlayerKey = roomData.players[userId];
-                const theirPlayerKey = myPlayerKey === 'p1' ? 'p2' : 'p1';
-                const theirWord = roomData.words[theirPlayerKey];
+                const theirWord = roomData.words[myPlayerKey === 'p1' ? 'p2' : 'p1'];
 
                 const updates = { [`words.${myPlayerKey}`]: word };
 
@@ -602,7 +678,8 @@
                     round: roomData.round + 1,
                     gameState: 'waiting',
                     words: { p1: '', p2: '' },
-                    readyForNextRound: []
+                    readyForNextRound: [],
+                    emojis: { p1: '', p2: '' }
                 });
             }
         }
@@ -622,9 +699,43 @@
                     words: { p1: '', p2: '' },
                     history: [],
                     readyForNextRound: [],
-                    readyForNewGame: []
+                    readyForNewGame: [],
+                    emojis: { p1: '', p2: '' }
                 });
             }
+        }
+
+        function showEmojiPopup(emoji) {
+            const emojiEl = document.createElement('div');
+            emojiEl.className = 'emoji-popup';
+            emojiEl.textContent = emoji;
+            ui.emojiPopupContainer.appendChild(emojiEl);
+
+            requestAnimationFrame(() => {
+                emojiEl.classList.add('show');
+            });
+
+            setTimeout(() => {
+                emojiEl.classList.remove('show');
+                setTimeout(() => {
+                    if (emojiEl.parentNode) {
+                        emojiEl.remove();
+                    }
+                }, 500);
+            }, 3000);
+        }
+
+        async function sendRemoteEmoji(emoji) {
+            if (!currentRoomId) return;
+            const roomRef = doc(db, "rooms", currentRoomId);
+            const roomSnap = await getDoc(roomRef);
+            if (!roomSnap.exists()) return;
+            const myPlayerKey = roomSnap.data().players[userId];
+            // Use a unique value to ensure re-sends are detected
+            const emojiPayload = `${emoji}-${Date.now()}`;
+            await updateDoc(roomRef, {
+                [`emojis.${myPlayerKey}`]: emojiPayload
+            });
         }
 
         // --- UNIVERSAL EVENT HANDLERS ---
@@ -635,6 +746,16 @@
         ui.results.playAgainBtn.addEventListener('click', () => {
             if (activeMode === 'local') playLocalAgain();
             else signalPlayAgain();
+        });
+        ui.results.emojiBar.addEventListener('click', (e) => {
+            if (e.target.classList.contains('emoji-btn')) {
+                const emoji = e.target.textContent;
+                if (activeMode === 'local') {
+                    showEmojiPopup(emoji);
+                } else {
+                    sendRemoteEmoji(emoji);
+                }
+            }
         });
         
         // --- INITIALIZATION ---
