@@ -31,6 +31,13 @@
             outline: none; ring: 2px; ring-offset: 2px;
             ring-color: #4f46e5; border-color: #4f46e5;
         }
+        .input-error {
+            border-color: #ef4444;
+        }
+        .input-error:focus {
+            ring-color: #ef4444;
+            border-color: #ef4444;
+        }
         .btn {
             margin-top: 1rem; width: 100%; font-weight: 700;
             padding: 0.75rem 1rem; border-radius: 0.5rem;
@@ -55,7 +62,7 @@
         .btn-danger:focus { ring-color: #dc2626; }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg p-8 space-y-6">
         
@@ -76,12 +83,14 @@
                 <div id="local-player1-turn">
                     <label for="local-word1" class="block text-sm font-medium text-gray-700">Player 1's Word</label>
                     <input type="text" id="local-word1" class="input-style" placeholder="e.g., Ran">
+                    <p id="local-word1-error" class="text-red-500 text-sm mt-1 hidden"></p>
                 </div>
                 <div id="local-player2-turn" class="hidden">
                     <label for="local-word2" class="block text-sm font-medium text-gray-700">Player 2's Word</label>
                     <input type="text" id="local-word2" class="input-style" placeholder="e.g., Running">
+                    <p id="local-word2-error" class="text-red-500 text-sm mt-1 hidden"></p>
                 </div>
-                <button id="local-main-button" class="btn btn-primary">Lock in Word</button>
+                <button id="local-main-button" class="btn btn-primary">Say It!</button>
             </div>
         </div>
 
@@ -114,8 +123,9 @@
                      <div id="remote-input-area">
                          <label id="remote-word-label" for="remote-word-input" class="block text-sm font-medium text-gray-700">Your Word</label>
                          <input type="text" id="remote-word-input" class="input-style" placeholder="Enter word...">
+                         <p id="remote-word-error" class="text-red-500 text-sm mt-1 hidden"></p>
                      </div>
-                     <button id="remote-main-button" class="btn btn-primary" disabled>Submit Word</button>
+                     <button id="remote-main-button" class="btn btn-primary" disabled>Say It!</button>
                  </div>
                  <button id="cancel-room-btn" class="btn btn-danger hidden">Cancel</button>
             </div>
@@ -139,13 +149,28 @@
         </div>
     </div>
 
+    <!-- =========== INFO CARDS =========== -->
+    <div class="w-full max-w-lg mx-auto mt-8 space-y-8">
+        <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col justify-center text-center">
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">How to Play</h3>
+            <p class="text-gray-600">The goal is to say the same word as your partner. If your words aren't the same, use them as inspiration for the next round until you match!</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col justify-center items-center text-center">
+             <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" title="Creative Commons BY-NC-SA 4.0">
+                <img src="http://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-sa.svg" alt="CC BY-NC-SA 4.0 Icon" class="mb-4 h-8" onerror="this.style.display='none'">
+             </a>
+             <p class="text-sm text-gray-500">This work is available under a <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">CC BY-NC-SA 4.0</a>.</p>
+        </div>
+    </div>
+
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- STEMMER FUNCTION (Self-contained) ---
+        // --- STEMMER FUNCTION (Self-contained Porter2 Stemmer) ---
         var stemmer=function(){var e={ational:"ate",tional:"tion",enci:"ence",anci:"ance",izer:"ize",bli:"ble",alli:"al",entli:"ent",eli:"e",ousli:"ous",ization:"ize",ation:"ate",ator:"ate",alism:"al",iveness:"ive",fulness:"ful",ousness:"ous",aliti:"al",iviti:"ive",biliti:"ble",logi:"log"},t={icate:"ic",ative:"",alize:"al",iciti:"ic",ical:"ic",ful:"",ness:""},r="[^aeiou]",i="[aeiouy]",o=r+"[^aeiouy]*",s=i+"[aeiou]*",u="^("+o+")?"+s+o,c="^("+o+")?"+s+o+"("+s+")?$",a="^("+o+")?"+s+o+s+o,f="^("+o+")?"+i;return function(r){var i,l,p,d,h,m,v;if(r.length<3)return r;if("y"==(p=r.substr(0,1)))r=p.toUpperCase()+r.substr(1);if((d=/^(.+?)(ss|i)es$/).test(r))r=r.replace(d,"$1$2");else if((h=/^(.+?)([^s])s$/).test(r))r=r.replace(h,"$1$2");if((d=/^(.+?)eed$/).test(r)){if((i=d.exec(r),d=new RegExp(u),d.test(i[1])))d=/.$/,r=r.replace(d,"")}else if((h=/^(.+?)(ed|ing)$/).test(r))i=h.exec(r),l=i[1],(h=new RegExp(f)).test(l)&&(r=l,(h=/(at|bl|iz)$/).test(r)?r+="e":(m=new RegExp("([^aeiouylsz])\\1$")).test(r)?(d=/.$/,r=r.replace(d,"")):(v=new RegExp("^"+o+i+"[^aeiouwxy]$")).test(r)&&(r+="e"));if((d=/^(.+?)y$/).test(r))i=d.exec(r),l=i[1],(d=new RegExp(f)).test(l)&&(r=l+"i");if((d=/^(.+?)(ational|tional|enci|anci|izer|bli|alli|entli|eli|ousli|ization|ation|ator|alism|iveness|fulness|ousness|aliti|iviti|biliti|logi)$/).test(r))i=d.exec(r),l=i[1],p=i[2],(d=new RegExp(u)).test(l)&&(r=l+e[p]);if((d=/^(.+?)(icate|ative|alize|iciti|ical|ful|ness)$/).test(r))i=d.exec(r),l=i[1],p=i[2],(d=new RegExp(u)).test(l)&&(r=l+t[p]);if((d=/^(.+?)(al|ance|ence|er|ic|able|ible|ant|ement|ment|ent|ou|ism|ate|iti|ous|ive|ize)$/).test(r)||(h=/^(.+?)(s|t)(ion)$/).test(r))i=(d=d.exec(r))||h.exec(r),l=i[1],(d=new RegExp(a)).test(l)&&(r=l);if((d=/^(.+?)e$/).test(r))i=d.exec(r),l=i[1],(d=new RegExp(a),h=new RegExp(c),m=new RegExp("^"+o+i+"[^aeiouwxy]$"),d.test(l)||h.test(l)&&!m.test(l))&&(r=l);if((d=/ll$/).test(r)&&(h=new RegExp(a)).test(r))d=/.$/,r=r.replace(d,"");if("y"==p)r=p.toLowerCase()+r.substr(1);return r}}();
         
         // --- GLOBAL STATE ---
@@ -153,6 +178,13 @@
         let activeMode = 'local';
         let unsubscribeFromRoom;
         let currentRoomId;
+        let lastSeenRound = 0; // Variable to track the round for the remote client
+        const wordList = [
+            'bottle', 'stapler', 'window', 'picture', 'blanket', 'computer',
+            'keyboard', 'monitor', 'speaker', 'headset', 'charger', 'notebook',
+            'pencil', 'backpack', 'wallet', 'mirror', 'towel', 'pillow',
+            'remote', 'curtain', 'dresser', 'cabinet', 'toaster', 'blender', 'kettle'
+        ];
 
         // --- UI ELEMENTS ---
         const ui = {
@@ -166,6 +198,8 @@
                 p2Turn: document.getElementById('local-player2-turn'),
                 word1Input: document.getElementById('local-word1'),
                 word2Input: document.getElementById('local-word2'),
+                word1Error: document.getElementById('local-word1-error'),
+                word2Error: document.getElementById('local-word2-error'),
                 mainButton: document.getElementById('local-main-button'),
                 historyContainer: document.getElementById('local-history-container'),
             },
@@ -184,6 +218,7 @@
                 roundDisplay: document.getElementById('remote-round-display'),
                 inputContainer: document.getElementById('remote-input-container'),
                 input: document.getElementById('remote-word-input'),
+                error: document.getElementById('remote-word-error'),
                 mainButton: document.getElementById('remote-main-button'),
                 cancelBtn: document.getElementById('cancel-room-btn'),
                 historyContainer: document.getElementById('remote-history-container'),
@@ -207,6 +242,52 @@
         // --- GAME STATE (LOCAL) ---
         let localState = { round: 1, currentPlayer: 1, word1: '', history: [] };
         
+        // --- HELPER FUNCTIONS ---
+        function getRandomWord() {
+            return wordList[Math.floor(Math.random() * wordList.length)];
+        }
+
+        function setRandomPlaceholder(inputElement) {
+            inputElement.placeholder = `e.g., ${getRandomWord()}`;
+        }
+
+        function showInputError(inputEl, errorEl, message) {
+            inputEl.classList.add('input-error');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+
+        function clearInputError(inputEl, errorEl) {
+            inputEl.classList.remove('input-error');
+            errorEl.classList.add('hidden');
+        }
+
+        function getWordsFromHistory(history) {
+            if (!history) return [];
+            const words = [];
+            history.forEach(round => {
+                words.push(round.p1);
+                words.push(round.p2);
+            });
+            return words;
+        }
+
+        function isWordSimilarToUsed(newWord, usedWordsArray) {
+            if (!usedWordsArray || usedWordsArray.length === 0) return false;
+
+            const normalizedNewWord = newWord.toLowerCase();
+            const stemOfNewWord = stemmer(normalizedNewWord);
+
+            // Check for direct and stem matches.
+            for (const usedWord of usedWordsArray) {
+                const normalizedUsedWord = usedWord.toLowerCase();
+                if (normalizedNewWord === normalizedUsedWord) return true; // Direct match
+                if (stemOfNewWord === stemmer(normalizedUsedWord)) return true; // Stem match
+            }
+
+            return false;
+        }
+
         // --- TAB SWITCHING ---
         function switchTab(mode) {
             if (activeMode === 'remote' && currentRoomId) {
@@ -238,7 +319,7 @@
                 container.innerHTML = ''; // Clear history if empty
                 return;
             }
-            let tableHTML = '<h3 class="text-lg font-semibold text-gray-700 text-center mb-2">History</h3><table class="w-full text-sm text-left text-gray-500"> <thead class="text-xs text-gray-700 uppercase bg-gray-50"> <tr> <th scope="col" class="px-6 py-3">Round</th> <th scope="col" class="px-6 py-3">Player 1</th> <th scope="col" class="px-6 py-3">Player 2</th> </tr> </thead> <tbody>';
+            let tableHTML = '<table class="w-full text-sm text-left text-gray-500"> <thead class="text-xs text-gray-700 uppercase bg-gray-50"> <tr> <th scope="col" class="px-6 py-3">Round</th> <th scope="col" class="px-6 py-3">Player 1</th> <th scope="col" class="px-6 py-3">Player 2</th> </tr> </thead> <tbody>';
             historyData.forEach(round => {
                 tableHTML += `<tr class="bg-white border-b"> <td class="px-6 py-4 font-medium text-gray-900">${round.round}</td> <td class="px-6 py-4">${round.p1}</td> <td class="px-6 py-4">${round.p2}</td> </tr>`;
             });
@@ -247,19 +328,14 @@
         }
 
         // --- UNIVERSAL RESULTS LOGIC ---
-        function showResults(word1, word2, round) {
+        function showResults(word1, word2, round, isMatch) {
             ui.local.content.classList.add('hidden');
             ui.remote.content.classList.add('hidden');
             ui.results.area.classList.remove('hidden');
             ui.results.word1Display.textContent = word1;
             ui.results.word2Display.textContent = word2;
 
-            const directMatch = word1.toLowerCase() === word2.toLowerCase();
-            const stemMatch = stemmer(word1.toLowerCase()) === stemmer(word2.toLowerCase());
-            const fuse = new Fuse([word1], { threshold: 0.4 });
-            const fuzzyMatch = fuse.search(word2).length > 0;
-
-            if (directMatch || stemMatch || fuzzyMatch) {
+            if (isMatch) {
                 ui.results.status.innerHTML = `Same! <br><span class="text-lg font-normal">It took you ${round} round${round > 1 ? 's' : ''}.</span>`;
                 ui.results.statusContainer.className = 'p-4 rounded-lg bg-green-100';
                 ui.results.playAgainBtn.classList.remove('hidden');
@@ -274,24 +350,40 @@
 
         // --- LOCAL GAME LOGIC ---
         function handleLocalTurn() {
+            const usedWords = getWordsFromHistory(localState.history);
+
             if (localState.currentPlayer === 1) {
-                const word = ui.local.word1Input.value.trim();
-                if (!word) { alert("Player 1, please enter a word."); return; }
-                localState.word1 = word;
+                const word1 = ui.local.word1Input.value.trim();
+                if (!word1) { alert("Player 1, please enter a word."); return; }
+                if (isWordSimilarToUsed(word1, usedWords)) {
+                    showInputError(ui.local.word1Input, ui.local.word1Error, "This word is too similar to one already used.");
+                    return;
+                }
+                
+                localState.word1 = word1;
                 ui.local.p1Turn.classList.add('hidden');
                 ui.local.p2Turn.classList.remove('hidden');
                 ui.local.word2Input.focus();
+                setRandomPlaceholder(ui.local.word2Input);
                 ui.local.mainButton.textContent = 'Say It!';
                 ui.local.instruction.textContent = "Player 2, enter your word.";
                 localState.currentPlayer = 2;
             } else {
                 const word2 = ui.local.word2Input.value.trim();
                 if (!word2) { alert("Player 2, please enter a word."); return; }
-                if (stemmer(localState.word1.toLowerCase()) !== stemmer(word2.toLowerCase())) {
-                    localState.history.push({ round: localState.round, p1: localState.word1, p2: word2 });
+                
+                // Check for reuse against previous rounds only.
+                if (isWordSimilarToUsed(word2, usedWords)) {
+                    showInputError(ui.local.word2Input, ui.local.word2Error, "This word is too similar to one already used.");
+                    return;
                 }
+                
+                localState.history.push({ round: localState.round, p1: localState.word1, p2: word2 });
                 renderHistory(localState.history, ui.local.historyContainer);
-                showResults(localState.word1, word2, localState.round);
+                
+                const directMatch = localState.word1.toLowerCase() === word2.toLowerCase();
+                const stemMatch = stemmer(localState.word1.toLowerCase()) === stemmer(word2.toLowerCase());
+                showResults(localState.word1, word2, localState.round, directMatch || stemMatch);
             }
         }
         function setupLocalNextRound() {
@@ -300,18 +392,20 @@
             localState.word1 = '';
             ui.local.word1Input.value = '';
             ui.local.word2Input.value = '';
+            setRandomPlaceholder(ui.local.word1Input);
+            setRandomPlaceholder(ui.local.word2Input);
             ui.results.area.classList.add('hidden');
             ui.local.content.classList.remove('hidden');
             ui.local.gameArea.classList.remove('hidden');
             ui.local.p2Turn.classList.add('hidden');
             ui.local.p1Turn.classList.remove('hidden');
             ui.local.word1Input.focus();
-            ui.local.mainButton.textContent = 'Lock in Word';
+            ui.local.mainButton.textContent = 'Say It!';
             ui.local.roundDisplay.textContent = `Round ${localState.round}`;
             ui.local.instruction.textContent = "Player 1, enter a word.";
         }
         function playLocalAgain() {
-            localState.round = 1;
+            localState.round = 0; 
             localState.history = [];
             renderHistory(localState.history, ui.local.historyContainer);
             setupLocalNextRound();
@@ -320,6 +414,7 @@
         // --- REMOTE GAME LOGIC ---
         async function createRoom() {
             try {
+                lastSeenRound = 1;
                 const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
                 const roomRef = doc(db, "rooms", roomId);
                 await setDoc(roomRef, {
@@ -328,7 +423,8 @@
                     gameState: 'waiting',
                     words: { p1: '', p2: '' },
                     history: [],
-                    readyForNextRound: []
+                    readyForNextRound: [],
+                    readyForNewGame: []
                 });
                 listenToRoom(roomId);
             } catch (error) {
@@ -344,6 +440,7 @@
                 const roomSnap = await getDoc(roomRef);
                 if (!roomSnap.exists()) { alert("Room not found."); return; }
                 const roomData = roomSnap.data();
+                lastSeenRound = roomData.round;
                 if (Object.keys(roomData.players).length >= 2 && !roomData.players[userId]) {
                     alert("This room is full."); return;
                 }
@@ -384,6 +481,7 @@
                 await deleteDoc(roomRef);
             }
             currentRoomId = null;
+            lastSeenRound = 0;
             ui.remote.gameArea.classList.add('hidden');
             ui.remote.selectionArea.classList.remove('hidden');
             ui.remote.roomIdDisplay.classList.add('hidden');
@@ -391,19 +489,30 @@
             renderHistory([], ui.remote.historyContainer);
         }
         function updateRemoteUI(data) {
-            const { players, round, gameState, words, history, readyForNextRound } = data;
+            const { players, round, gameState, words, history, readyForNextRound, readyForNewGame } = data;
             renderHistory(history, ui.remote.historyContainer);
             const myPlayerKey = players[userId];
             if (!myPlayerKey) return;
             const isPlayer1 = myPlayerKey === 'p1';
             const numPlayers = Object.keys(players).length;
 
+            const directMatch = words.p1.toLowerCase() === words.p2.toLowerCase();
+            const stemMatch = stemmer(words.p1.toLowerCase()) === stemmer(words.p2.toLowerCase());
+            const isMatch = (words.p1 && words.p2) && (directMatch || stemMatch);
+
             if (gameState === 'results') {
                 ui.remote.roomIdDisplay.classList.add('hidden');
-                showResults(words.p1, words.p2, round);
-                const iAmReady = readyForNextRound.includes(userId);
-                ui.results.nextRoundBtn.disabled = iAmReady;
-                ui.results.nextRoundBtn.textContent = iAmReady ? 'Waiting for partner...' : 'Next Round';
+                showResults(words.p1, words.p2, round, isMatch);
+                
+                if(isMatch) {
+                    const iAmReady = readyForNewGame && readyForNewGame.includes(userId);
+                    ui.results.playAgainBtn.disabled = iAmReady;
+                    ui.results.playAgainBtn.textContent = iAmReady ? 'Waiting for partner...' : 'Play Again';
+                } else {
+                    const iAmReady = readyForNextRound.includes(userId);
+                    ui.results.nextRoundBtn.disabled = iAmReady;
+                    ui.results.nextRoundBtn.textContent = iAmReady ? 'Waiting for partner...' : 'Next Round';
+                }
                 return;
             }
             
@@ -425,18 +534,25 @@
             ui.remote.inputContainer.classList.remove('hidden');
             ui.remote.roundDisplay.textContent = `Round ${round}`;
 
-            const myWord = isPlayer1 ? words.p1 : words.p2;
+            const myWord = words[myPlayerKey];
 
             if (myWord) {
                 ui.remote.instruction.textContent = 'Your word is locked in. Waiting for partner...';
                 ui.remote.mainButton.disabled = true;
                 ui.remote.input.disabled = true;
+                ui.remote.input.value = myWord;
             } else {
                 ui.remote.instruction.textContent = `Your turn, Player ${isPlayer1 ? 1 : 2}.`;
                 ui.remote.mainButton.disabled = false;
                 ui.remote.input.disabled = false;
-                ui.remote.input.value = ''; // Clear input for new round
+                setRandomPlaceholder(ui.remote.input);
+                // Only clear the input if the round has advanced
+                if (lastSeenRound !== round) {
+                    ui.remote.input.value = '';
+                }
             }
+            // Update the last seen round
+            lastSeenRound = round;
         }
         async function submitRemoteWord() {
             const word = ui.remote.input.value.trim();
@@ -445,8 +561,14 @@
             try {
                 const roomSnap = await getDoc(roomRef);
                 const roomData = roomSnap.data();
-                const myPlayerKey = roomData.players[userId];
                 
+                const usedWords = getWordsFromHistory(roomData.history);
+                if(isWordSimilarToUsed(word, usedWords)) {
+                    showInputError(ui.remote.input, ui.remote.error, "This word is too similar to one already used.");
+                    return;
+                }
+
+                const myPlayerKey = roomData.players[userId];
                 const theirPlayerKey = myPlayerKey === 'p1' ? 'p2' : 'p1';
                 const theirWord = roomData.words[theirPlayerKey];
 
@@ -456,10 +578,9 @@
                     updates.gameState = 'results';
                     const p1Word = myPlayerKey === 'p1' ? word : theirWord;
                     const p2Word = myPlayerKey === 'p2' ? word : theirWord;
-                    if (stemmer(p1Word.toLowerCase()) !== stemmer(p2Word.toLowerCase())) {
-                        const newHistoryEntry = { round: roomData.round, p1: p1Word, p2: p2Word };
-                        updates.history = arrayUnion(newHistoryEntry);
-                    }
+                    
+                    const newHistoryEntry = { round: roomData.round, p1: p1Word, p2: p2Word };
+                    updates.history = arrayUnion(newHistoryEntry);
                 }
                 await updateDoc(roomRef, updates);
             } catch (error) {
@@ -471,9 +592,8 @@
             const roomRef = doc(db, "rooms", currentRoomId);
             ui.results.nextRoundBtn.disabled = true;
             ui.results.nextRoundBtn.textContent = 'Waiting for partner...';
-            await updateDoc(roomRef, {
-                readyForNextRound: arrayUnion(userId)
-            });
+            
+            await updateDoc(roomRef, { readyForNextRound: arrayUnion(userId) });
 
             const roomSnap = await getDoc(roomRef);
             const roomData = roomSnap.data();
@@ -486,15 +606,25 @@
                 });
             }
         }
-        async function playRemoteAgain() {
+        async function signalPlayAgain() {
             const roomRef = doc(db, "rooms", currentRoomId);
-            await updateDoc(roomRef, {
-                round: 1,
-                gameState: 'waiting',
-                words: { p1: '', p2: '' },
-                history: [],
-                readyForNextRound: []
-            });
+            ui.results.playAgainBtn.disabled = true;
+            ui.results.playAgainBtn.textContent = 'Waiting for partner...';
+            
+            await updateDoc(roomRef, { readyForNewGame: arrayUnion(userId) });
+
+            const roomSnap = await getDoc(roomRef);
+            const roomData = roomSnap.data();
+            if (roomData.readyForNewGame.length === 2) {
+                await updateDoc(roomRef, {
+                    round: 1,
+                    gameState: 'waiting',
+                    words: { p1: '', p2: '' },
+                    history: [],
+                    readyForNextRound: [],
+                    readyForNewGame: []
+                });
+            }
         }
 
         // --- UNIVERSAL EVENT HANDLERS ---
@@ -504,7 +634,7 @@
         });
         ui.results.playAgainBtn.addEventListener('click', () => {
             if (activeMode === 'local') playLocalAgain();
-            else playRemoteAgain();
+            else signalPlayAgain();
         });
         
         // --- INITIALIZATION ---
@@ -530,6 +660,10 @@
                 renderHistory([], ui.local.historyContainer);
                 renderHistory([], ui.remote.historyContainer);
                 
+                setRandomPlaceholder(ui.local.word1Input);
+                setRandomPlaceholder(ui.local.word2Input);
+                setRandomPlaceholder(ui.remote.input);
+
                 ui.local.tab.addEventListener('click', () => switchTab('local'));
                 ui.remote.tab.addEventListener('click', () => switchTab('remote'));
                 ui.local.mainButton.addEventListener('click', handleLocalTurn);
@@ -551,6 +685,10 @@
                     document.body.removeChild(textArea);
                 });
                 
+                ui.local.word1Input.addEventListener('input', () => clearInputError(ui.local.word1Input, ui.local.word1Error));
+                ui.local.word2Input.addEventListener('input', () => clearInputError(ui.local.word2Input, ui.local.word2Error));
+                ui.remote.input.addEventListener('input', () => clearInputError(ui.remote.input, ui.remote.error));
+
                 ui.local.word1Input.addEventListener('keypress', (e) => e.key === 'Enter' && ui.local.mainButton.click());
                 ui.local.word2Input.addEventListener('keypress', (e) => e.key === 'Enter' && ui.local.mainButton.click());
                 ui.remote.input.addEventListener('keypress', (e) => e.key === 'Enter' && ui.remote.mainButton.click());
