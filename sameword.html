@@ -49,6 +49,9 @@
         .btn-success { background-color: #16a34a; color: white; }
         .btn-success:hover { background-color: #15803d; }
         .btn-success:focus { ring-color: #16a34a; }
+        .btn-danger { background-color: #dc2626; color: white; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .btn-danger:focus { ring-color: #dc2626; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -91,24 +94,29 @@
                     <input type="text" id="room-id-input" class="input-style text-center" placeholder="Enter Room ID">
                     <button id="join-room-btn" class="btn btn-secondary !mt-2">Join Room</button>
                 </div>
-                 <div id="room-id-display" class="hidden p-3 bg-gray-100 rounded-lg">
-                    <p class="text-sm text-gray-600">Share this Room ID with your friend:</p>
-                    <div class="flex items-center justify-center mt-2">
-                        <strong id="room-id-text" class="text-2xl text-indigo-600 tracking-widest"></strong>
-                        <button id="copy-room-id-btn" class="ml-4 p-2 rounded-md hover:bg-gray-200 focus:outline-none" title="Copy Room ID">
-                            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                        </button>
-                    </div>
+            </div>
+            
+            <div id="room-id-display" class="hidden p-3 bg-gray-100 rounded-lg mt-4">
+                <p class="text-sm text-gray-600">Share this Room ID with your friend:</p>
+                <div class="flex items-center justify-center mt-2">
+                    <strong id="room-id-text" class="text-2xl text-indigo-600 tracking-widest"></strong>
+                    <button id="copy-room-id-btn" class="ml-4 p-2 rounded-md hover:bg-gray-200 focus:outline-none" title="Copy Room ID">
+                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </button>
                 </div>
             </div>
+
             <div id="remote-game-area" class="hidden">
-                 <p id="remote-instruction-text" class="text-center text-gray-500 mt-2">Waiting for opponent...</p>
+                 <p id="remote-instruction-text" class="text-center text-gray-500 mt-2">Waiting for partner...</p>
                  <h2 id="remote-round-display" class="text-xl font-semibold text-center text-gray-600">Round 1</h2>
-                 <div id="remote-input-area">
-                     <label id="remote-word-label" for="remote-word-input" class="block text-sm font-medium text-gray-700">Your Word</label>
-                     <input type="text" id="remote-word-input" class="input-style" placeholder="Enter word...">
+                 <div id="remote-input-container">
+                     <div id="remote-input-area">
+                         <label id="remote-word-label" for="remote-word-input" class="block text-sm font-medium text-gray-700">Your Word</label>
+                         <input type="text" id="remote-word-input" class="input-style" placeholder="Enter word...">
+                     </div>
+                     <button id="remote-main-button" class="btn btn-primary" disabled>Submit Word</button>
                  </div>
-                 <button id="remote-main-button" class="btn btn-primary" disabled>Submit Word</button>
+                 <button id="cancel-room-btn" class="btn btn-danger hidden">Cancel</button>
             </div>
         </div>
 
@@ -128,13 +136,13 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- STEMMER FUNCTION (Self-contained) ---
         var stemmer=function(){var e={ational:"ate",tional:"tion",enci:"ence",anci:"ance",izer:"ize",bli:"ble",alli:"al",entli:"ent",eli:"e",ousli:"ous",ization:"ize",ation:"ate",ator:"ate",alism:"al",iveness:"ive",fulness:"ful",ousness:"ous",aliti:"al",iviti:"ive",biliti:"ble",logi:"log"},t={icate:"ic",ative:"",alize:"al",iciti:"ic",ical:"ic",ful:"",ness:""},r="[^aeiou]",i="[aeiouy]",o=r+"[^aeiouy]*",s=i+"[aeiou]*",u="^("+o+")?"+s+o,c="^("+o+")?"+s+o+"("+s+")?$",a="^("+o+")?"+s+o+s+o,f="^("+o+")?"+i;return function(r){var i,l,p,d,h,m,v;if(r.length<3)return r;if("y"==(p=r.substr(0,1)))r=p.toUpperCase()+r.substr(1);if((d=/^(.+?)(ss|i)es$/).test(r))r=r.replace(d,"$1$2");else if((h=/^(.+?)([^s])s$/).test(r))r=r.replace(h,"$1$2");if((d=/^(.+?)eed$/).test(r)){if((i=d.exec(r),d=new RegExp(u),d.test(i[1])))d=/.$/,r=r.replace(d,"")}else if((h=/^(.+?)(ed|ing)$/).test(r))i=h.exec(r),l=i[1],(h=new RegExp(f)).test(l)&&(r=l,(h=/(at|bl|iz)$/).test(r)?r+="e":(m=new RegExp("([^aeiouylsz])\\1$")).test(r)?(d=/.$/,r=r.replace(d,"")):(v=new RegExp("^"+o+i+"[^aeiouwxy]$")).test(r)&&(r+="e"));if((d=/^(.+?)y$/).test(r))i=d.exec(r),l=i[1],(d=new RegExp(f)).test(l)&&(r=l+"i");if((d=/^(.+?)(ational|tional|enci|anci|izer|bli|alli|entli|eli|ousli|ization|ation|ator|alism|iveness|fulness|ousness|aliti|iviti|biliti|logi)$/).test(r))i=d.exec(r),l=i[1],p=i[2],(d=new RegExp(u)).test(l)&&(r=l+e[p]);if((d=/^(.+?)(icate|ative|alize|iciti|ical|ful|ness)$/).test(r))i=d.exec(r),l=i[1],p=i[2],(d=new RegExp(u)).test(l)&&(r=l+t[p]);if((d=/^(.+?)(al|ance|ence|er|ic|able|ible|ant|ement|ment|ent|ou|ism|ate|iti|ous|ive|ize)$/).test(r)||(h=/^(.+?)(s|t)(ion)$/).test(r))i=(d=d.exec(r))||h.exec(r),l=i[1],(d=new RegExp(a)).test(l)&&(r=l);if((d=/^(.+?)e$/).test(r))i=d.exec(r),l=i[1],(d=new RegExp(a),h=new RegExp(c),m=new RegExp("^"+o+i+"[^aeiouwxy]$"),d.test(l)||h.test(l)&&!m.test(l))&&(r=l);if((d=/ll$/).test(r)&&(h=new RegExp(a)).test(r))d=/.$/,r=r.replace(d,"");if("y"==p)r=p.toLowerCase()+r.substr(1);return r}}();
         
         // --- GLOBAL STATE ---
-        let db, auth, userId, appId;
+        let db, auth, userId;
         let activeMode = 'local';
         let unsubscribeFromRoom;
         let currentRoomId;
@@ -166,8 +174,10 @@
                 copyBtn: document.getElementById('copy-room-id-btn'),
                 instruction: document.getElementById('remote-instruction-text'),
                 roundDisplay: document.getElementById('remote-round-display'),
+                inputContainer: document.getElementById('remote-input-container'),
                 input: document.getElementById('remote-word-input'),
                 mainButton: document.getElementById('remote-main-button'),
+                cancelBtn: document.getElementById('cancel-room-btn'),
             },
             results: {
                 area: document.getElementById('results'),
@@ -264,51 +274,86 @@
 
         // --- REMOTE GAME LOGIC ---
         async function createRoom() {
-            const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rooms", roomId);
-            await setDoc(roomRef, {
-                players: { [userId]: 'p1' },
-                round: 1,
-                gameState: 'waiting', // waiting, p1_done, results
-                words: { p1: '', p2: '' }
-            });
-            listenToRoom(roomId);
-            ui.remote.roomIdText.textContent = roomId;
-            ui.remote.roomIdDisplay.classList.remove('hidden');
+            try {
+                const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const roomRef = doc(db, "rooms", roomId);
+                await setDoc(roomRef, {
+                    players: { [userId]: 'p1' },
+                    round: 1,
+                    gameState: 'waiting',
+                    words: { p1: '', p2: '' }
+                });
+                listenToRoom(roomId);
+            } catch (error) {
+                console.error("Error creating room:", error);
+                alert("Could not create room. Please check the console for errors and ensure your Firestore rules are correct.");
+            }
         }
         async function joinRoom() {
             const roomId = ui.remote.roomIdInput.value.trim().toUpperCase();
             if (!roomId) { alert("Please enter a Room ID."); return; }
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rooms", roomId);
-            const roomSnap = await getDoc(roomRef);
-            if (!roomSnap.exists()) { alert("Room not found."); return; }
-            const roomData = roomSnap.data();
-            if (Object.keys(roomData.players).length >= 2 && !roomData.players[userId]) {
-                alert("This room is full."); return;
+            const roomRef = doc(db, "rooms", roomId);
+            try {
+                const roomSnap = await getDoc(roomRef);
+                if (!roomSnap.exists()) { alert("Room not found."); return; }
+                const roomData = roomSnap.data();
+                if (Object.keys(roomData.players).length >= 2 && !roomData.players[userId]) {
+                    alert("This room is full."); return;
+                }
+                if (!roomData.players[userId]) {
+                    await updateDoc(roomRef, { [`players.${userId}`]: 'p2' });
+                }
+                listenToRoom(roomId);
+            } catch (error) {
+                console.error("Error joining room:", error);
+                alert("Could not join room. Please check the Room ID and your Firestore rules.");
             }
-            if (!roomData.players[userId]) {
-                await updateDoc(roomRef, { [`players.${userId}`]: 'p2' });
-            }
-            listenToRoom(roomId);
         }
         function listenToRoom(roomId) {
             currentRoomId = roomId;
             ui.remote.selectionArea.classList.add('hidden');
             ui.remote.gameArea.classList.remove('hidden');
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rooms", roomId);
+            ui.remote.roomIdText.textContent = roomId;
+            ui.remote.roomIdDisplay.classList.remove('hidden');
+
+            const roomRef = doc(db, "rooms", roomId);
             unsubscribeFromRoom = onSnapshot(roomRef, (doc) => {
-                if (doc.exists()) updateRemoteUI(doc.data());
+                if (doc.exists()) {
+                    updateRemoteUI(doc.data());
+                } else {
+                    alert("The game room was closed.");
+                    cancelRoom(false); // Don't delete the doc again if it's already gone
+                }
+            }, (error) => {
+                console.error("Error listening to room:", error);
+                alert("Lost connection to the game room.");
             });
+        }
+        async function cancelRoom(deleteRoom = true) {
+            if (unsubscribeFromRoom) {
+                unsubscribeFromRoom();
+                unsubscribeFromRoom = null;
+            }
+            if(currentRoomId && deleteRoom) {
+                const roomRef = doc(db, "rooms", currentRoomId);
+                await deleteDoc(roomRef);
+            }
+            currentRoomId = null;
+            // Reset UI
+            ui.remote.gameArea.classList.add('hidden');
+            ui.remote.selectionArea.classList.remove('hidden');
+            ui.remote.roomIdDisplay.classList.add('hidden');
+            ui.remote.cancelBtn.classList.add('hidden');
         }
         function updateRemoteUI(data) {
             const { players, round, gameState, words } = data;
             const myPlayerKey = players[userId];
+            if (!myPlayerKey) return; // Not part of this room
             const isPlayer1 = myPlayerKey === 'p1';
             const numPlayers = Object.keys(players).length;
 
-            ui.remote.roundDisplay.textContent = `Round ${round}`;
-
             if (gameState === 'results') {
+                ui.remote.roomIdDisplay.classList.add('hidden');
                 showResults(words.p1, words.p2, round);
                 return;
             }
@@ -317,16 +362,24 @@
             ui.results.area.classList.add('hidden');
 
             if (numPlayers < 2) {
-                ui.remote.instruction.textContent = 'Waiting for opponent to join...';
-                ui.remote.mainButton.disabled = true;
+                ui.remote.instruction.textContent = 'Waiting for partner...';
+                ui.remote.roundDisplay.classList.add('hidden');
+                ui.remote.inputContainer.classList.add('hidden');
+                ui.remote.cancelBtn.classList.remove('hidden');
                 return;
             }
+            
+            // Partner has joined
+            ui.remote.roomIdDisplay.classList.add('hidden');
+            ui.remote.cancelBtn.classList.add('hidden');
+            ui.remote.roundDisplay.classList.remove('hidden');
+            ui.remote.inputContainer.classList.remove('hidden');
+            ui.remote.roundDisplay.textContent = `Round ${round}`;
 
             const myWord = isPlayer1 ? words.p1 : words.p2;
-            const theirWord = isPlayer1 ? words.p2 : words.p1;
 
             if (myWord) {
-                ui.remote.instruction.textContent = 'Your word is locked in. Waiting for opponent...';
+                ui.remote.instruction.textContent = 'Your word is locked in. Waiting for partner...';
                 ui.remote.mainButton.disabled = true;
                 ui.remote.input.disabled = true;
             } else {
@@ -338,31 +391,34 @@
         async function submitRemoteWord() {
             const word = ui.remote.input.value.trim();
             if (!word) { alert("Please enter a word."); return; }
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rooms", currentRoomId);
-            const roomSnap = await getDoc(roomRef);
-            const roomData = roomSnap.data();
-            const myPlayerKey = roomData.players[userId];
-            const updates = { [`words.${myPlayerKey}`]: word };
+            const roomRef = doc(db, "rooms", currentRoomId);
+            try {
+                const roomSnap = await getDoc(roomRef);
+                const roomData = roomSnap.data();
+                const myPlayerKey = roomData.players[userId];
+                const updates = { [`words.${myPlayerKey}`]: word };
 
-            const theirPlayerKey = myPlayerKey === 'p1' ? 'p2' : 'p1';
-            if (roomData.words[theirPlayerKey]) {
-                updates.gameState = 'results';
+                const theirPlayerKey = myPlayerKey === 'p1' ? 'p2' : 'p1';
+                if (roomData.words[theirPlayerKey]) {
+                    updates.gameState = 'results';
+                }
+                await updateDoc(roomRef, updates);
+            } catch (error) {
+                 console.error("Error submitting word:", error);
+                alert("Could not submit word. Please check your connection and Firestore rules.");
             }
-            await updateDoc(roomRef, updates);
         }
         async function setupRemoteNextRound() {
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rooms", currentRoomId);
-            const roomSnap = await getDoc(roomRef);
-            const roomData = roomSnap.data();
+            const roomRef = doc(db, "rooms", currentRoomId);
             await updateDoc(roomRef, {
-                round: roomData.round + 1,
+                round: (await getDoc(roomRef)).data().round + 1,
                 gameState: 'waiting',
                 words: { p1: '', p2: '' }
             });
             ui.remote.input.value = '';
         }
         async function playRemoteAgain() {
-            const roomRef = doc(db, "artifacts", appId, "public", "data", "rooms", currentRoomId);
+            const roomRef = doc(db, "rooms", currentRoomId);
             await updateDoc(roomRef, {
                 round: 1,
                 gameState: 'waiting',
@@ -383,47 +439,52 @@
         
         // --- INITIALIZATION ---
         window.onload = async () => {
-            // Use environment-provided Firebase config
-            if (typeof __firebase_config === 'undefined') {
-                alert("Firebase configuration is missing. Remote play is disabled.");
-                ui.remote.tab.disabled = true;
-                return;
-            }
-            const firebaseConfig = JSON.parse(__firebase_config);
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = {
+                apiKey: "AIzaSyBn0gENIkoO8z9-oK-wmlPXYkmVMNMkV3M",
+                authDomain: "say-the-same-thing-19372.firebaseapp.com",
+                projectId: "say-the-same-thing-19372",
+                storageBucket: "say-the-same-thing-19372.firebasestorage.app",
+                messagingSenderId: "471937812902",
+                appId: "1:471937812902:web:67b671276515eb4b1a2767",
+                measurementId: "G-7VMTYPTM7J"
+            };
 
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
 
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
                 userId = auth.currentUser.uid;
                 
-                // Set up event listeners
                 ui.local.tab.addEventListener('click', () => switchTab('local'));
                 ui.remote.tab.addEventListener('click', () => switchTab('remote'));
                 ui.local.mainButton.addEventListener('click', handleLocalTurn);
                 ui.remote.createBtn.addEventListener('click', createRoom);
                 ui.remote.joinBtn.addEventListener('click', joinRoom);
+                ui.remote.cancelBtn.addEventListener('click', () => cancelRoom(true));
                 ui.remote.mainButton.addEventListener('click', submitRemoteWord);
                 ui.remote.copyBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(ui.remote.roomIdText.textContent);
-                    alert("Room ID copied to clipboard!");
+                    const textArea = document.createElement("textarea");
+                    textArea.value = ui.remote.roomIdText.textContent;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert("Room ID copied to clipboard!");
+                    } catch (err) {
+                        console.error('Fallback: Oops, unable to copy', err);
+                    }
+                    document.body.removeChild(textArea);
                 });
                 
-                // Enter key listeners
                 ui.local.word1Input.addEventListener('keypress', (e) => e.key === 'Enter' && ui.local.mainButton.click());
                 ui.local.word2Input.addEventListener('keypress', (e) => e.key === 'Enter' && ui.local.mainButton.click());
                 ui.remote.input.addEventListener('keypress', (e) => e.key === 'Enter' && ui.remote.mainButton.click());
 
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                alert("Could not connect to the game service. Remote play is disabled.");
+                alert("Could not connect to the game service. Please check your Firestore rules.");
                 ui.remote.tab.disabled = true;
             }
         };
